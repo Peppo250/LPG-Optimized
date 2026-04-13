@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LPG Catering Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  :root{--bg:#0d1117;--surface:#161b22;--card:#1c2230;--border:rgba(255,255,255,0.08);--text:#e6edf3;--muted:#8b949e;--accent:#f78166;--blue:#58a6ff;--green:#3fb950;--amber:#d29922;--red:#f85149;--font:'DM Sans',sans-serif;--mono:'DM Mono',monospace}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6}
+  .shell{display:flex;min-height:100vh}
+  .sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);flex-shrink:0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+  .logo{padding:20px 18px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+  .logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),#ff6e40);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+  .logo-text{font-size:13px;font-weight:600;line-height:1.2}.logo-sub{font-size:10px;color:var(--muted)}
+  .nav{padding:12px 0;flex:1}
+  .nav-label{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding:8px 18px 4px}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:8px 18px;color:var(--muted);cursor:pointer;font-size:13px;border-left:2px solid transparent;transition:all .15s;user-select:none}
+  .nav-item:hover{color:var(--text);background:rgba(255,255,255,.04)}
+  .nav-item.active{color:var(--text);border-left-color:var(--accent);background:rgba(247,129,102,.08);font-weight:500}
+  .sidebar-footer{padding:14px 18px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)}
+  .main{flex:1;overflow-y:auto;min-width:0}
+  .topbar{height:52px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:var(--surface);position:sticky;top:0;z-index:10}
+  .topbar-title{font-size:15px;font-weight:500}
+  .badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500;font-family:var(--mono)}
+  .badge-green{background:rgba(63,185,80,.15);color:var(--green)}.badge-amber{background:rgba(210,153,34,.15);color:var(--amber)}
+  .badge-red{background:rgba(248,81,73,.15);color:var(--red)}.badge-blue{background:rgba(88,166,255,.15);color:var(--blue)}
+  .content{padding:28px}
+  .page{display:none}.page.active{display:block}
+  .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+  .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+  .g2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px}
+  @media(max-width:1100px){.g4{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:800px){.g4,.g3,.g2{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px}
+  .card-title{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+  .kpi-label{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.05em;text-transform:uppercase}
+  .kpi-value{font-size:28px;font-weight:600;line-height:1.1;margin:6px 0 4px;font-family:var(--mono)}
+  .kpi-sub{font-size:11px;color:var(--muted)}
+  .kpi-green{border-top:3px solid var(--green)}.kpi-blue{border-top:3px solid var(--blue)}
+  .kpi-amber{border-top:3px solid var(--amber)}.kpi-red{border-top:3px solid var(--red)}
+  .sk{background:linear-gradient(90deg,var(--card) 25%,var(--surface) 50%,var(--card) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:4px;height:1em;display:inline-block;min-width:80px}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .fg{display:flex;flex-direction:column;gap:6px}.flabel{font-size:12px;color:var(--muted);font-weight:500}
+  .fi,.fs{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-size:13px;font-family:var(--font);width:100%;transition:border-color .15s}
+  .fi:focus,.fs:focus{outline:none;border-color:var(--accent)}.fs option{background:var(--card)}
+  .fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:900px){.fgrid{grid-template-columns:repeat(2,1fr)}}
+  .btn{padding:9px 20px;border-radius:8px;font-size:13px;font-weight:500;font-family:var(--font);cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+  .btn-p{background:var(--accent);color:#fff}.btn-p:hover{background:#e06352}
+  .btn-g{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-g:hover{background:rgba(255,255,255,.06)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .rpanel{margin-top:24px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;display:none}
+  .rpanel.show{display:block}
+  .rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+  .rmet{background:var(--card);border-radius:10px;padding:14px 16px;border:1px solid var(--border)}
+  .rmet-l{font-size:11px;color:var(--muted);margin-bottom:4px}.rmet-v{font-size:22px;font-weight:600;font-family:var(--mono)}.rmet-u{font-size:11px;color:var(--muted);margin-top:2px}
+  .tier{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;margin-bottom:16px}
+  .tier-GREEN{background:rgba(63,185,80,.15);color:var(--green)}.tier-AMBER{background:rgba(210,153,34,.15);color:var(--amber)}.tier-RED{background:rgba(248,81,73,.15);color:var(--red)}
+  .alist{list-style:none}.alist li{padding:8px 12px 8px 32px;position:relative;font-size:13px;border-bottom:1px solid var(--border)}.alist li:last-child{border-bottom:none}.alist li::before{content:'→';position:absolute;left:12px;color:var(--accent)}
+  .tw{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead tr{background:var(--surface)}
+  th{padding:10px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid var(--border)}
+  td{padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.04)}tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.02)}
+  .pb{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin:4px 0 2px}
+  .pf{height:100%;border-radius:3px;transition:width .6s ease}
+  .pg{background:var(--green)}.pa{background:var(--amber)}.pbl{background:var(--blue)}.pr{background:var(--red)}
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.15);border-top-color:var(--accent);border-radius:50%;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .rl{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px}.rdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .ibox{background:rgba(88,166,255,.07);border:1px solid rgba(88,166,255,.2);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--blue);margin-bottom:16px}
+  #toast{position:fixed;bottom:28px;right:28px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;display:none;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+  #toast.show{display:block}
+  ::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+  <div class="logo"><div class="logo-icon">&#128293;</div><div><div class="logo-text">LPG Intelligence</div><div class="logo-sub">Tamil Nadu &middot; Commercial</div></div></div>
+  <nav class="nav">
+    <div class="nav-label">Overview</div>
+    <div class="nav-item active" onclick="nav('dashboard')">&#9633; Dashboard</div>
+    <div class="nav-item" onclick="nav('predict')">&#10230; Predict Event</div>
+    <div class="nav-label" style="margin-top:8px">Optimization</div>
+    <div class="nav-item" onclick="nav('optimize')">&#9672; Refill Optimizer</div>
+    <div class="nav-item" onclick="nav('regional')">&#9678; Regional Demand</div>
+    <div class="nav-item" onclick="nav('simulation')">&#9655; Simulation</div>
+    <div class="nav-label" style="margin-top:8px">Models</div>
+    <div class="nav-item" onclick="nav('models')">&#9671; Model Metrics</div>
+    <div class="nav-item" onclick="nav('features')">&#8801; Feature Importance</div>
+  </nav>
+  <div class="sidebar-footer" id="sfooter">Connecting...<br><span id="sstatus" style="font-size:10px;font-family:var(--mono)">&#9679; API offline</span></div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="ptitle">Dashboard</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span id="apibadge" class="badge badge-amber">&#9679; Connecting</span>
+      <span style="font-size:12px;color:var(--muted)" id="tdate"></span>
+    </div>
+  </div>
+  <div class="content">
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="g4">
+      <div class="kpi kpi-blue"><div class="kpi-label">Consumption R&sup2;</div><div class="kpi-value" style="color:var(--blue)" id="k-r2"><span class="sk" style="width:70px">&nbsp;</span></div><div class="kpi-sub">GBM model &middot; real data</div></div>
+      <div class="kpi kpi-green"><div class="kpi-label">Avg MAE</div><div class="kpi-value" style="color:var(--green)" id="k-mae"><span class="sk" style="width:60px">&nbsp;</span></div><div class="kpi-sub">per event &middot; GBM</div></div>
+      <div class="kpi kpi-amber"><div class="kpi-label">Stockout AUC</div><div class="kpi-value" style="color:var(--amber)" id="k-auc"><span class="sk" style="width:60px">&nbsp;</span></div><div class="kpi-sub">classifier &middot; GBM</div></div>
+      <div class="kpi kpi-red"><div class="kpi-label">Max Cylinder Price</div><div class="kpi-value" style="color:var(--red)" id="k-price"><span class="sk" style="width:70px">&nbsp;</span></div><div class="kpi-sub">19 kg commercial &middot; IOC data</div></div>
+    </div>
+    <div class="g2">
+      <div class="card"><div class="card-title">Avg Monthly LPG Consumption (kg) &mdash; from dataset</div><canvas id="c-monthly" height="180"></canvas></div>
+      <div class="card"><div class="card-title">Events by Type &mdash; from dataset</div><div style="display:flex;align-items:center;gap:24px;padding-top:8px"><canvas id="c-events" width="140" height="140"></canvas><div id="c-legend" style="flex:1"><span class="sk" style="width:120px;display:block;margin-bottom:6px">&nbsp;</span><span class="sk" style="width:100px;display:block;margin-bottom:6px">&nbsp;</span><span class="sk" style="width:110px;display:block">&nbsp;</span></div></div></div>
+    </div>
+    <div class="g3">
+      <div class="card"><div class="card-title">Dataset Summary</div><table style="font-size:13px">
+        <tr><td style="color:var(--muted);padding:5px 0">Total events</td><td style="text-align:right;font-family:var(--mono)" id="d-ev"><span class="sk" style="width:50px">&nbsp;</span></td></tr>
+        <tr><td style="color:var(--muted);padding:5px 0">Date range</td><td style="text-align:right;font-family:var(--mono)">2018&ndash;2023</td></tr>
+        <tr><td style="color:var(--muted);padding:5px 0">Feature columns</td><td style="text-align:right;font-family:var(--mono)" id="d-ft"><span class="sk" style="width:30px">&nbsp;</span></td></tr>
+        <tr><td style="color:var(--muted);padding:5px 0">Event types</td><td style="text-align:right;font-family:var(--mono)" id="d-et"><span class="sk" style="width:20px">&nbsp;</span></td></tr>
+        <tr><td style="color:var(--muted);padding:5px 0">Stockout events</td><td style="text-align:right;font-family:var(--mono)" id="d-so"><span class="sk" style="width:50px">&nbsp;</span></td></tr>
+        <tr><td style="color:var(--muted);padding:5px 0">Real data sources</td><td style="text-align:right;font-family:var(--mono)">3</td></tr>
+      </table></div>
+      <div class="card"><div class="card-title">Model Performance</div><div id="perfbars"><span class="sk" style="width:100%;display:block;height:80px">&nbsp;</span></div></div>
+      <div class="card"><div class="card-title">Top 5 Predictive Features</div><div id="topfeats"><span class="sk" style="width:90%;display:block;margin-bottom:6px">&nbsp;</span><span class="sk" style="width:80%;display:block;margin-bottom:6px">&nbsp;</span><span class="sk" style="width:85%;display:block">&nbsp;</span></div></div>
+    </div>
+  </div>
+
+  <!-- PREDICT -->
+  <div class="page" id="page-predict">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px"><div><div style="font-size:16px;font-weight:600">Predict Event Consumption</div><div style="font-size:12px;color:var(--muted);margin-top:2px">ML model + optimization &middot; results from live API</div></div></div>
+    <div class="card">
+      <div style="margin-bottom:20px"><div class="card-title">Caterer Profile</div>
+        <div class="fgrid">
+          <div class="fg"><label class="flabel">Caterer Name</label><input class="fi" id="pn" value="Murugan Grand Catering" type="text"></div>
+          <div class="fg"><label class="flabel">Business Size</label><select class="fs" id="ps"><option value="small">Small (50&ndash;300)</option><option value="medium" selected>Medium (200&ndash;800)</option><option value="large">Large (500&ndash;3000)</option></select></div>
+          <div class="fg"><label class="flabel">Experience (yrs)</label><input class="fi" id="pe" value="8" type="number" min="1" max="40"></div>
+          <div class="fg"><label class="flabel">Burners</label><input class="fi" id="pb" value="8" type="number" min="1" max="30"></div>
+        </div>
+      </div>
+      <div class="card-title">Event Details</div>
+      <div class="fgrid">
+        <div class="fg"><label class="flabel">Event Date</label><input class="fi" id="pd" type="date"></div>
+        <div class="fg"><label class="flabel">Event Type</label><select class="fs" id="pt"><option value="wedding">Wedding</option><option value="corporate_lunch">Corporate Lunch</option><option value="college_canteen">College Canteen</option><option value="birthday_party">Birthday Party</option><option value="festival_event">Festival Event</option><option value="hospital_canteen">Hospital Canteen</option><option value="school_canteen">School Canteen</option><option value="dhaba_daily">Dhaba / Daily</option></select></div>
+        <div class="fg"><label class="flabel">Headcount</label><input class="fi" id="phc" value="400" type="number" min="10" max="5000"></div>
+        <div class="fg"><label class="flabel">Dishes</label><input class="fi" id="pnd" value="7" type="number" min="1" max="20"></div>
+        <div class="fg"><label class="flabel">Duration (hrs)</label><input class="fi" id="pdr" value="6" type="number" min="0.5" max="16" step="0.5"></div>
+        <div class="fg"><label class="flabel">Menu Profile</label><select class="fs" id="pm"><option value="veg_simple">Veg &ndash; Simple</option><option value="veg_elaborate">Veg &ndash; Elaborate</option><option value="nonveg_simple">Non-Veg &ndash; Simple</option><option value="nonveg_elaborate">Non-Veg &ndash; Elaborate</option><option value="mixed_standard" selected>Mixed &ndash; Standard</option><option value="snacks_only">Snacks Only</option><option value="biryani_special">Biryani Special</option></select></div>
+        <div class="fg" style="flex-direction:row;align-items:center;gap:10px;justify-content:flex-end"><label class="flabel" style="margin:0">Festival</label><input type="checkbox" id="pf" style="width:18px;height:18px;accent-color:var(--accent)"></div>
+      </div>
+      <div style="margin-top:20px;display:flex;gap:10px;align-items:center">
+        <button class="btn btn-p" id="pred-btn" onclick="runPredict()"><span id="pred-spin"></span>Predict &amp; Optimize</button>
+        <button class="btn btn-g" onclick="document.getElementById('rp').classList.remove('show')">Reset</button>
+        <span id="pred-src" style="font-size:11px;color:var(--muted)"></span>
+      </div>
+    </div>
+    <div class="rpanel" id="rp">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:16px;font-weight:600">Results <span style="font-size:12px;color:var(--muted);font-weight:400" id="r-src"></span></div>
+        <div class="tier" id="r-tier">&mdash;</div>
+      </div>
+      <div class="rgrid">
+        <div class="rmet"><div class="rmet-l">LPG Consumption</div><div class="rmet-v" id="r-cons">&mdash;</div><div class="rmet-u">kg predicted</div></div>
+        <div class="rmet"><div class="rmet-l">Cylinders to Order</div><div class="rmet-v" id="r-cyl">&mdash;</div><div class="rmet-u">19-kg commercial</div></div>
+        <div class="rmet"><div class="rmet-l">Estimated Cost</div><div class="rmet-v" id="r-cost">&mdash;</div><div class="rmet-u">INR</div></div>
+        <div class="rmet"><div class="rmet-l">Order By</div><div class="rmet-v" style="font-size:16px" id="r-date">&mdash;</div><div class="rmet-u">recommended</div></div>
+        <div class="rmet"><div class="rmet-l">Stockout Risk</div><div class="rmet-v" id="r-risk">&mdash;</div><div class="rmet-u">probability</div></div>
+        <div class="rmet"><div class="rmet-l">Efficiency Score</div><div class="rmet-v" id="r-eff">&mdash;</div><div class="rmet-u">out of 100</div></div>
+      </div>
+      <div class="card-title" style="margin-bottom:8px">Recommended Actions</div>
+      <ul class="alist" id="r-actions"></ul>
+      <div style="margin-top:12px;font-size:11px;color:var(--muted);font-family:var(--mono)" id="r-notes"></div>
+    </div>
+  </div>
+
+  <!-- OPTIMIZE -->
+  <div class="page" id="page-optimize">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><div><div style="font-size:16px;font-weight:600">Refill Optimizer</div><div style="font-size:12px;color:var(--muted);margin-top:2px">Multi-event LP optimization &middot; live from API</div></div><button class="btn btn-p" onclick="runBatch()"><span id="bspin"></span>Run LP Optimization</button></div>
+    <div class="ibox" id="opt-hint">Loading events from API...</div>
+    <div class="card" style="margin-bottom:20px"><div class="card-title">Events Queue</div><div class="tw"><table><thead><tr><th>Caterer</th><th>Date</th><th>Type</th><th>Guests</th><th>Consumption</th><th>Cylinders</th><th>Risk</th></tr></thead><tbody id="etbody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">Loading...</td></tr></tbody></table></div></div>
+    <div class="g3" id="lpkpis" style="display:none">
+      <div class="kpi kpi-green"><div class="kpi-label">Total Cylinders</div><div class="kpi-value" style="color:var(--green)" id="lp-cyl">&mdash;</div><div class="kpi-sub">all events</div></div>
+      <div class="kpi kpi-blue"><div class="kpi-label">Total Cost</div><div class="kpi-value" style="color:var(--blue)" id="lp-cost">&mdash;</div><div class="kpi-sub">INR</div></div>
+      <div class="kpi kpi-amber"><div class="kpi-label">High Risk Events</div><div class="kpi-value" style="color:var(--amber)" id="lp-risk">&mdash;</div><div class="kpi-sub">need early order</div></div>
+    </div>
+  </div>
+
+  <!-- REGIONAL -->
+  <div class="page" id="page-regional">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"><div><div style="font-size:16px;font-weight:600">Regional Demand Forecast</div><div style="font-size:12px;color:var(--muted);margin-top:2px">30-day dealer forecast &middot; from API simulation</div></div><button class="btn btn-p" onclick="runRegional()"><span id="regspin"></span>Generate Forecast</button></div>
+    <div class="g4" id="regkpis" style="display:none">
+      <div class="kpi kpi-blue"><div class="kpi-label">Avg Daily Demand</div><div class="kpi-value" style="color:var(--blue)" id="reg-avg">&mdash;</div><div class="kpi-sub">cylinders/day</div></div>
+      <div class="kpi kpi-red"><div class="kpi-label">Peak Demand</div><div class="kpi-value" style="color:var(--red)" id="reg-peak">&mdash;</div><div class="kpi-sub">cylinders 1 day</div></div>
+      <div class="kpi kpi-amber"><div class="kpi-label">Spike Days</div><div class="kpi-value" style="color:var(--amber)" id="reg-spk">&mdash;</div><div class="kpi-sub">above 80% capacity</div></div>
+      <div class="kpi kpi-green"><div class="kpi-label">Wastage Reduction</div><div class="kpi-value" style="color:var(--green)" id="reg-wr">&mdash;</div><div class="kpi-sub">vs unoptimized</div></div>
+    </div>
+    <div class="card" id="regchart" style="display:none"><div class="card-title">30-Day Demand &mdash; Raw vs Smoothed</div><canvas id="c-reg" height="200"></canvas></div>
+  </div>
+
+  <!-- SIMULATION -->
+  <div class="page" id="page-simulation">
+    <div style="font-size:16px;font-weight:600;margin-bottom:16px">Optimization Simulation</div>
+    <div class="g2" style="margin-bottom:20px">
+      <div class="card"><div class="card-title">Settings</div>
+        <div class="fgrid" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div class="fg"><label class="flabel">Caterers</label><input class="fi" id="sn" value="50" type="number" min="10" max="200"></div>
+          <div class="fg"><label class="flabel">Month</label><select class="fs" id="sm"><option value="1">January (Pongal)</option><option value="2">February</option><option value="3">March</option><option value="4">April</option><option value="5">May</option><option value="6">June</option><option value="7">July</option><option value="8">August (Onam)</option><option value="9">September</option><option value="10">October (Navratri)</option><option value="11" selected>November (Diwali)</option><option value="12">December</option></select></div>
+        </div>
+        <button class="btn btn-p" onclick="runSim()"><span id="sspin"></span>Run Simulation</button>
+      </div>
+      <div class="card" id="simres" style="display:none"><div class="card-title">Impact &mdash; from API</div><div id="simmet"></div></div>
+    </div>
+    <div class="card" id="simchart" style="display:none"><div class="card-title">Before vs After Optimization</div><canvas id="c-sim" height="200"></canvas></div>
+  </div>
+
+  <!-- MODELS -->
+  <div class="page" id="page-models">
+    <div style="font-size:16px;font-weight:600;margin-bottom:4px">Model Training Metrics</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:20px">All values from <code style="font-family:var(--mono);color:var(--blue)">/api/metrics</code> &mdash; no hardcoded numbers</div>
+    <div class="g3" id="mcards"><div class="card"><span class="sk" style="width:100%;display:block;height:100px">&nbsp;</span></div><div class="card"><span class="sk" style="width:100%;display:block;height:100px">&nbsp;</span></div><div class="card"><span class="sk" style="width:100%;display:block;height:100px">&nbsp;</span></div></div>
+    <div class="card" id="msources" style="display:none"><div class="card-title">Real Data Sources</div><div id="msrclist"></div></div>
+  </div>
+
+  <!-- FEATURES -->
+  <div class="page" id="page-features">
+    <div style="font-size:16px;font-weight:600;margin-bottom:4px">Feature Importance</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:20px">From <code style="font-family:var(--mono);color:var(--blue)">/api/feature-importance</code> &mdash; trained GBM models</div>
+    <div class="g2">
+      <div class="card"><div class="card-title">Stockout Prediction &mdash; Top Features</div><canvas id="c-fis" height="280"></canvas></div>
+      <div class="card"><div class="card-title">Consumption Prediction &mdash; Top Features</div><canvas id="c-fic" height="280"></canvas></div>
+    </div>
+  </div>
+
+  </div>
+</div>
+</div>
+<div id="toast"></div>
+
+<script>
+const API='http://localhost:8000';
+
+async function api(path,opts={}){
+  const sep=path.includes('?')?'&':'?';
+  const bust=opts.method?'':sep+'_t='+Date.now();
+  const r=await fetch(API+path+bust,{
+    headers:{'Content-Type':'application/json','Cache-Control':'no-cache','Pragma':'no-cache'},
+    ...opts
+  });
+  if(!r.ok)throw new Error(r.status);
+  return r.json();
+}
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const COLORS=['#f78166','#58a6ff','#3fb950','#d29922','#8b949e','#39d353','#f85149','#7f77dd'];
+let METRICS=null, FI=null;
+
+// ── API ──────────────────────────────────────────────────────────
+async function api(path,opts={}){
+  // Cache-bust GET requests so browser never shows stale data
+  const url = API + path + (opts.method ? '' : (path.includes('?') ? '&' : '?') + '_t=' + Date.now());
+  const r=await fetch(url,{headers:{'Content-Type':'application/json','Cache-Control':'no-cache'},...opts});
+  if(!r.ok) throw new Error(r.status);
+  return r.json();
+}
+
+async function checkAPI(){
+  try{
+    await api('/');
+    document.getElementById('apibadge').className='badge badge-green';
+    document.getElementById('apibadge').textContent='\u25CF Live';
+    document.getElementById('sstatus').textContent='\u25CF API connected';
+    document.getElementById('sstatus').style.color='var(--green)';
+    return true;
+  }catch{
+    document.getElementById('apibadge').className='badge badge-red';
+    document.getElementById('apibadge').textContent='\u25CF API offline';
+    document.getElementById('sstatus').textContent='\u25CF API offline';
+    document.getElementById('sstatus').style.color='var(--red)';
+    toast('API offline \u2014 run: uvicorn api:app --port 8000 --reload');
+    return false;
+  }
+}
+
+// ── Navigation ───────────────────────────────────────────────────
+const TITLES={dashboard:'Dashboard',predict:'Predict Event',optimize:'Refill Optimizer',regional:'Regional Demand',simulation:'Simulation',models:'Model Metrics',features:'Feature Importance'};
+function nav(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>{if(n.textContent.trim().toLowerCase().replace(/\s+/g,'').includes(id.replace(/-/g,'')))n.classList.add('active')});
+  document.getElementById('ptitle').textContent=TITLES[id]||id;
+  if(id==='features'&&FI)renderFI(FI);
+  if(id==='models'&&METRICS)renderModelCards(METRICS);
+}
+
+// ── Dashboard ────────────────────────────────────────────────────
+async function loadDash(){
+  try{
+    METRICS=await api('/api/metrics');
+    const mp=METRICS.model_performance, ds=METRICS.dataset;
+    // KPIs
+    document.getElementById('k-r2').textContent=(mp.consumption_r2*100).toFixed(1)+'%';
+    document.getElementById('k-mae').textContent=mp.consumption_mae_kg+' kg';
+    document.getElementById('k-auc').textContent=mp.stockout_auc.toFixed(3);
+    document.getElementById('k-price').textContent='\u20B9'+Number(METRICS.cylinder_price_inr).toLocaleString('en-IN');
+    // Dataset
+    document.getElementById('d-ev').textContent=Number(ds.total_events).toLocaleString('en-IN');
+    document.getElementById('d-ft').textContent=ds.feature_columns;
+    document.getElementById('d-et').textContent=ds.event_types;
+    document.getElementById('d-so').textContent=Number(ds.stockout_events).toLocaleString('en-IN');
+    // Sidebar
+    document.getElementById('sfooter').innerHTML='v3 &middot; GBM+MLP<br>'+Number(ds.total_events).toLocaleString()+' events &middot; '+ds.feature_columns+' features<br><span id="sstatus" style="font-size:10px;font-family:var(--mono);color:var(--green)">\u25CF API connected</span>';
+    // Perf bars
+    renderPerfBars(mp);
+    // Charts
+    if(METRICS.monthly_avg_consumption)renderMonthly(METRICS.monthly_avg_consumption);
+    if(METRICS.event_distribution)renderDonut(METRICS.event_distribution);
+    renderModelCards(METRICS);
+  }catch(e){
+    document.getElementById('k-r2').textContent='offline';
+    toast('Could not load metrics \u2014 is uvicorn running?');
+  }
+}
+
+function renderPerfBars(mp){
+  const rows=[
+    ['Consumption R\u00B2',mp.consumption_r2,'pg'],
+    ['Cylinders R\u00B2',  mp.cylinders_r2,  'pg'],
+    ['Stockout F1',         mp.stockout_f1,   'pa'],
+    ['Stockout AUC',        mp.stockout_auc,  'pbl'],
+  ];
+  document.getElementById('perfbars').innerHTML=rows.map(([l,v,c])=>`
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>${l}</span><span style="font-family:var(--mono)">${v.toFixed(4)}</span></div>
+      <div class="pb"><div class="pf ${c}" style="width:${(v*100).toFixed(1)}%"></div></div>
+    </div>`).join('');
+}
+
+function renderMonthly(data){
+  const vals=MONTHS.map((_,i)=>data[i+1]||0);
+  const ctx=document.getElementById('c-monthly').getContext('2d');
+  if(window._mc)window._mc.destroy();
+  window._mc=new Chart(ctx,{type:'bar',data:{labels:MONTHS,datasets:[{data:vals,backgroundColor:vals.map(v=>v>80?'rgba(247,129,102,0.7)':'rgba(88,166,255,0.5)'),borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8b949e',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8b949e',font:{size:10}}}}}});
+}
+
+function renderDonut(dist){
+  const labels=Object.keys(dist).map(k=>k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()));
+  const vals=Object.values(dist);
+  const ctx=document.getElementById('c-events').getContext('2d');
+  if(window._ec)window._ec.destroy();
+  window._ec=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data:vals,backgroundColor:COLORS,borderWidth:0,hoverOffset:4}]},options:{cutout:'70%',plugins:{legend:{display:false}},responsive:false}});
+  document.getElementById('c-legend').innerHTML=labels.map((l,i)=>`<div class="rl"><div class="rdot" style="background:${COLORS[i]}"></div><span style="flex:1">${l}</span><span style="font-family:var(--mono);color:var(--muted)">${vals[i].toFixed(1)}%</span></div>`).join('');
+}
+
+function renderModelCards(m){
+  const mp=m.model_performance, ds=m.dataset;
+  function pr(l,v,c){const pct=Math.min(100,parseFloat(v)*100);return`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>${l}</span><span style="font-family:var(--mono);color:var(--${c})">${v}</span></div><div class="pb"><div class="pf p${c}" style="width:${isNaN(pct)?0:pct}%"></div></div></div>`}
+  document.getElementById('mcards').innerHTML=`
+    <div class="card"><div class="card-title">Consumption (kg) &middot; Regression</div>
+      ${pr('GBM R\u00B2',mp.consumption_r2.toFixed(4),'g')}
+      ${pr('GBM MAE',mp.consumption_mae_kg+' kg','bl')}
+      ${pr('MLP R\u00B2',mp.mlp_consumption_r2.toFixed(4),'a')}
+      <div style="margin-top:12px"><span class="badge badge-green" style="font-size:11px">GBM wins &uarr;${((mp.consumption_r2-mp.mlp_consumption_r2)*100).toFixed(2)}% R\u00B2</span></div>
+    </div>
+    <div class="card"><div class="card-title">Cylinders Needed &middot; Regression</div>
+      ${pr('GBM R\u00B2',mp.cylinders_r2.toFixed(4),'g')}
+      ${pr('GBM MAE',mp.cylinders_mae+' cyl','bl')}
+      ${pr('MLP R\u00B2',mp.mlp_cylinders_r2.toFixed(4),'a')}
+      <div style="margin-top:12px"><span class="badge badge-green" style="font-size:11px">GBM wins &uarr;${((mp.cylinders_r2-mp.mlp_cylinders_r2)*100).toFixed(2)}% R\u00B2</span></div>
+    </div>
+    <div class="card"><div class="card-title">Stockout &middot; Classifier</div>
+      ${pr('F1 Score',mp.stockout_f1.toFixed(4),'g')}
+      ${pr('ROC-AUC',mp.stockout_auc.toFixed(4),'bl')}
+      ${pr('Accuracy',(mp.stockout_acc*100).toFixed(1)+'%','a')}
+      <div style="margin-top:12px"><span class="badge badge-blue" style="font-size:11px">GBM + SMOTE oversampling</span></div>
+    </div>`;
+  if(ds.real_sources&&ds.real_sources.length){
+    document.getElementById('msources').style.display='block';
+    document.getElementById('msrclist').innerHTML=ds.real_sources.map(s=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">\u2192 ${s}</div>`).join('');
+  }
+}
+
+// ── Feature importance ───────────────────────────────────────────
+async function loadFI(){
+  try{
+    FI=await api('/api/feature-importance');
+    // Top 5 on dashboard
+    const top5=FI.stockout_top10.slice(0,5);
+    const clrs=['var(--accent)','var(--blue)','var(--green)','var(--amber)','var(--muted)'];
+    document.getElementById('topfeats').innerHTML=top5.map((f,i)=>`<div class="rl"><div class="rdot" style="background:${clrs[i]}"></div><span style="flex:1;font-size:12px">${f.feature}</span><span style="font-family:var(--mono);color:var(--muted);font-size:11px">${(f.stockout*100).toFixed(1)}%</span></div>`).join('');
+    renderFI(FI);
+  }catch(e){
+    document.getElementById('topfeats').innerHTML='<span style="color:var(--muted);font-size:12px">Feature data unavailable</span>';
+  }
+}
+
+function renderFI(fi){
+  ['stockout','consumption'].forEach(key=>{
+    const id='c-fi'+(key==='stockout'?'s':'c');
+    const el=document.getElementById(id); if(!el)return;
+    if(el._ch)el._ch.destroy();
+    const data=key==='stockout'?fi.stockout_top10:fi.consumption_top10;
+    if(!data)return;
+    const labels=data.map(d=>d.feature).reverse();
+    const vals=data.map(d=>d[key]).reverse();
+    el._ch=new Chart(el.getContext('2d'),{type:'bar',data:{labels,datasets:[{data:vals,backgroundColor:key==='stockout'?'rgba(247,129,102,0.7)':'rgba(88,166,255,0.6)',borderRadius:3}]},options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8b949e',font:{size:10}}},y:{grid:{display:false},ticks:{color:'#8b949e',font:{size:10}}}}}});
+  });
+}
+
+// ── Predict ──────────────────────────────────────────────────────
+async function runPredict(){
+  const btn=document.getElementById('pred-btn'); btn.disabled=true;
+  document.getElementById('pred-spin').innerHTML='<div class="spin" style="margin-right:6px"></div>';
+  const body={caterer_id:'CAT001',caterer_name:document.getElementById('pn').value,experience_yrs:+document.getElementById('pe').value,num_burners:+document.getElementById('pb').value,business_size:document.getElementById('ps').value,event_date:document.getElementById('pd').value||new Date(Date.now()+7*86400000).toISOString().slice(0,10),event_type:document.getElementById('pt').value,headcount:+document.getElementById('phc').value,num_dishes:+document.getElementById('pnd').value,duration_hrs:+document.getElementById('pdr').value,menu_profile:document.getElementById('pm').value,is_festival_season:document.getElementById('pf').checked};
+  try{
+    const resp=await api('/api/predict',{method:'POST',body:JSON.stringify(body)});
+    const r=resp.data;
+    document.getElementById('rp').classList.add('show');
+    document.getElementById('r-cons').textContent=r.predicted_consumption_kg+' kg';
+    document.getElementById('r-cyl').textContent=r.cylinders_to_order;
+    document.getElementById('r-cost').textContent='\u20B9'+Number(r.estimated_cost_inr).toLocaleString('en-IN');
+    document.getElementById('r-date').textContent=r.recommended_order_date;
+    document.getElementById('r-risk').textContent=r.stockout_risk_pct+'%';
+    document.getElementById('r-risk').style.color=r.stockout_risk_pct>50?'var(--red)':r.stockout_risk_pct>25?'var(--amber)':'var(--green)';
+    document.getElementById('r-eff').textContent=r.efficiency_score+'/100';
+    const t=document.getElementById('r-tier'); t.textContent=r.recommendation_tier; t.className='tier tier-'+r.recommendation_tier;
+    document.getElementById('r-actions').innerHTML=r.action_items.map(a=>`<li>${a}</li>`).join('');
+    document.getElementById('r-notes').textContent=r.optimization_notes||'';
+    document.getElementById('r-src').textContent=r.ml_consumption_kg?`\u00B7 ML: ${r.ml_consumption_kg} kg (blended)`:`\u00B7 Rule-based (run train_final.py to enable ML)`;
+    toast('Prediction from API');
+  }catch(e){toast('Predict failed \u2014 API offline?');}
+  btn.disabled=false; document.getElementById('pred-spin').innerHTML='';
+}
+
+// ── Optimize ─────────────────────────────────────────────────────
+const DEVENTS=[
+  {n:'Murugan Grand Catering',e:15,b:12,s:'large',  et:'wedding',        hc:800, nd:9, d:8.0,m:'nonveg_elaborate',f:true},
+  {n:'Meenakshi Events',      e:7, b:6, s:'medium', et:'corporate_lunch',hc:250, nd:5, d:3.5,m:'veg_simple',      f:false},
+  {n:'Balaji Caterers',       e:2, b:3, s:'small',  et:'birthday_party', hc:80,  nd:4, d:3.0,m:'mixed_standard',  f:false},
+  {n:'Annapoorna Services',   e:10,b:8, s:'medium', et:'festival_event', hc:400, nd:7, d:6.0,m:'veg_elaborate',   f:true},
+  {n:'Royal Weddings',        e:20,b:18,s:'large',  et:'wedding',        hc:1500,nd:10,d:9.0,m:'nonveg_elaborate',f:true},
+  {n:'College Canteen',       e:5, b:4, s:'small',  et:'college_canteen',hc:300, nd:4, d:2.0,m:'veg_simple',      f:false},
+];
+function dfn(n){const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
+
+async function loadOptTable(){
+  document.getElementById('opt-hint').textContent='Loading predictions from API...';
+  const ps=DEVENTS.map((e,i)=>api('/api/predict',{method:'POST',body:JSON.stringify({caterer_id:`CAT00${i+1}`,caterer_name:e.n,experience_yrs:e.e,num_burners:e.b,business_size:e.s,event_date:dfn(3+i*2),event_type:e.et,headcount:e.hc,num_dishes:e.nd,duration_hrs:e.d,menu_profile:e.m,is_festival_season:e.f})}).then(r=>({...r.data,name:e.n})).catch(()=>null));
+  const res=(await Promise.all(ps)).filter(Boolean);
+  if(!res.length){document.getElementById('etbody').innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:20px">API offline</td></tr>';document.getElementById('opt-hint').textContent='Start uvicorn to load live predictions.';return;}
+  document.getElementById('etbody').innerHTML=res.map(r=>{const tc=r.recommendation_tier==='GREEN'?'badge-green':r.recommendation_tier==='AMBER'?'badge-amber':'badge-red';return`<tr><td>${r.name||r.caterer_id}</td><td style="font-family:var(--mono)">${r.event_date}</td><td>${(r.event_type||'').replace(/_/g,' ')}</td><td style="font-family:var(--mono)">${r.headcount||'\u2014'}</td><td style="font-family:var(--mono)">${r.predicted_consumption_kg} kg</td><td style="font-family:var(--mono)">${r.cylinders_to_order}</td><td><span class="badge ${tc}">${r.recommendation_tier}</span></td></tr>`}).join('');
+  document.getElementById('opt-hint').textContent=`LP optimizer minimizes total cost+wastage across ${res.length} events. All values from trained GBM model.`;
+  toast('Events loaded from API');
+}
+
+async function runBatch(){
+  document.getElementById('bspin').innerHTML='<div class="spin" style="margin-right:6px"></div>';
+  try{
+    const evs=DEVENTS.map((e,i)=>({caterer_id:`CAT00${i+1}`,caterer_name:e.n,experience_yrs:e.e,num_burners:e.b,business_size:e.s,event_date:dfn(3+i*2),event_type:e.et,headcount:e.hc,num_dishes:e.nd,duration_hrs:e.d,menu_profile:e.m,is_festival_season:e.f}));
+    const r=await api('/api/batch-optimize',{method:'POST',body:JSON.stringify({events:evs,use_lp:true})});
+    const s=r.summary;
+    document.getElementById('lpkpis').style.display='grid';
+    document.getElementById('lp-cyl').textContent=s.total_cylinders;
+    document.getElementById('lp-cost').textContent='\u20B9'+Number(s.total_cost_inr).toLocaleString('en-IN');
+    document.getElementById('lp-risk').textContent=s.high_risk_events;
+    toast('LP optimization from API');
+  }catch(e){toast('Batch optimize failed');}
+  document.getElementById('bspin').innerHTML='';
+}
+
+// ── Regional ─────────────────────────────────────────────────────
+let RC=null;
+async function runRegional(){
+  document.getElementById('regspin').innerHTML='<div class="spin" style="margin-right:6px"></div>';
+  try{
+    const mo=document.getElementById('sm')?document.getElementById('sm').value:11;
+    const r=await api(`/api/regional-forecast?month=${mo}&n_caterers=40`);
+    const cur=r.demand_curve||[], s=r.summary||{}, im=r.improvement||{};
+    document.getElementById('regkpis').style.display='grid';
+    document.getElementById('regchart').style.display='block';
+    document.getElementById('reg-avg').textContent=s.avg_daily_demand||'\u2014';
+    document.getElementById('reg-peak').textContent=s.peak_demand_cylinders||'\u2014';
+    document.getElementById('reg-spk').textContent=s.spike_days_count||'\u2014';
+    document.getElementById('reg-wr').textContent=(im.wastage_reduction_pct||'\u2014')+'%';
+    if(RC)RC.destroy();
+    RC=new Chart(document.getElementById('c-reg').getContext('2d'),{type:'line',data:{labels:cur.map(r=>r.date?r.date.slice(5):''),datasets:[{label:'Raw',data:cur.map(r=>Math.round(r.raw_demand||0)),borderColor:'#f85149',backgroundColor:'rgba(248,81,73,0.08)',fill:true,tension:0.3,pointRadius:0},{label:'Smoothed',data:cur.map(r=>Math.round(r.smoothed_demand||r.raw_demand||0)),borderColor:'#3fb950',backgroundColor:'rgba(63,185,80,0.08)',fill:true,tension:0.4,pointRadius:0},{label:'Capacity',data:Array(cur.length).fill(s.dealer_capacity||200),borderColor:'rgba(210,153,34,0.6)',borderDash:[6,3],pointRadius:0}]},options:{responsive:true,plugins:{legend:{display:true,labels:{color:'#8b949e',font:{size:11}}}},scales:{x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8b949e',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8b949e',font:{size:10}}}}}});
+    toast('Forecast from API');
+  }catch(e){toast('Regional forecast failed');}
+  document.getElementById('regspin').innerHTML='';
+}
+
+// ── Simulation ───────────────────────────────────────────────────
+let SC=null;
+async function runSim(){
+  document.getElementById('sspin').innerHTML='<div class="spin" style="margin-right:6px"></div>';
+  try{
+    const n=document.getElementById('sn').value, mo=document.getElementById('sm').value;
+    const r=await api(`/api/simulation?n_caterers=${n}&month=${mo}`);
+    const d=r.data, b=d.before_optimization, a=d.after_optimization, im=d.improvement;
+    document.getElementById('simres').style.display='block';
+    document.getElementById('simchart').style.display='block';
+    document.getElementById('simmet').innerHTML=`<table style="font-size:13px;width:100%">
+      <tr><td style="color:var(--muted);padding:6px 0">Caterers</td><td style="text-align:right;font-family:var(--mono)">${d.simulation.caterers}</td></tr>
+      <tr><td style="color:var(--muted);padding:6px 0">Total events</td><td style="text-align:right;font-family:var(--mono)">${d.simulation.total_events}</td></tr>
+      <tr><td style="color:var(--green);padding:6px 0">Wastage reduction</td><td style="text-align:right;font-family:var(--mono);color:var(--green)">${im.wastage_reduction_pct}%</td></tr>
+      <tr><td style="color:var(--green);padding:6px 0">Peak demand reduction</td><td style="text-align:right;font-family:var(--mono);color:var(--green)">${im.peak_demand_reduction_pct}%</td></tr>
+      <tr><td style="color:var(--blue);padding:6px 0">Cost saving</td><td style="text-align:right;font-family:var(--mono);color:var(--blue)">\u20B9${Number(im.cost_saving_inr).toLocaleString('en-IN')}</td></tr>
+    </table>`;
+    if(SC)SC.destroy();
+    SC=new Chart(document.getElementById('c-sim').getContext('2d'),{type:'bar',data:{labels:['Wastage (kg)','Peak Demand','Cost (\u00F71000)'],datasets:[{label:'Before',data:[b.total_wastage_kg,b.peak_daily_demand,Math.round(b.total_cost_inr/1000)],backgroundColor:'rgba(248,81,73,0.6)'},{label:'After',data:[a.total_wastage_kg,a.peak_daily_demand,Math.round(a.total_cost_inr/1000)],backgroundColor:'rgba(63,185,80,0.6)'}]},options:{responsive:true,plugins:{legend:{display:true,labels:{color:'#8b949e',font:{size:11}}}},scales:{x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8b949e',font:{size:10}}},y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8b949e',font:{size:10}}}}}});
+    toast('Simulation from API \u2014 '+im.wastage_reduction_pct+'% wastage reduction');
+  }catch(e){toast('Simulation failed');}
+  document.getElementById('sspin').innerHTML='';
+}
+
+// ── Toast ────────────────────────────────────────────────────────
+function toast(msg){const t=document.getElementById('toast');t.textContent='\u2713 '+msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800)}
+
+// ── Init ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',async()=>{
+  document.getElementById('tdate').textContent=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+  const d=new Date();d.setDate(d.getDate()+7);document.getElementById('pd').value=d.toISOString().slice(0,10);
+  await checkAPI();
+  await loadDash();
+  await loadOptTable();
+  await loadFI();
+  // Show live API values in console for debugging
+  try {
+    const m = await api('/api/metrics');
+    console.log('[LPG Dashboard] Live API metrics:', {
+      r2: m.model_performance.consumption_r2,
+      mae: m.model_performance.consumption_mae_kg,
+      auc: m.model_performance.stockout_auc,
+      rows: m.dataset.total_events,
+      stockout: m.dataset.stockout_events,
+    });
+  } catch(e) { console.warn('Could not verify API metrics:', e); }
+  setInterval(checkAPI,30000);
+});
+</script>
+</body>
+</html>
