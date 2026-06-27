@@ -44,8 +44,12 @@ from optimization_engine import (
     CYLINDER_PRICE_INR,
 )
 
-MODEL_DIR = "models_final"
-DATA_DIR  = "data/final"
+from lpg_catering.config import (
+    MODEL_DIR,
+    DATA_DIR,
+    EVENT_TYPES,
+    MENU_PROFILES
+)
 
 # ── Load models once at startup ──────────────────────────────────
 MODELS: Dict[str, Any] = {}
@@ -147,10 +151,8 @@ def ml_predict_consumption(req) -> Optional[float]:
         TMAX = meta.get("TMAX") or meta.get("target_max", [500,29,100,30])
 
         month = datetime.strptime(req.event_date, "%Y-%m-%d").month
-        etype_list = ["wedding","corporate_lunch","college_canteen","birthday_party",
-                      "festival_event","hospital_canteen","school_canteen","dhaba_daily"]
-        menu_list  = ["veg_simple","veg_elaborate","nonveg_simple","nonveg_elaborate",
-                      "mixed_standard","snacks_only","biryani_special"]
+        etype_list = EVENT_TYPES
+        menu_list  = MENU_PROFILES
         fmap = {
             "headcount":             req.headcount / 3000,
             "num_dishes":            req.num_dishes / 10,
@@ -195,8 +197,7 @@ def ml_predict_stockout(req) -> Optional[float]:
         if not (feat_stk and stk):
             return None
         month = datetime.strptime(req.event_date, "%Y-%m-%d").month
-        etype_list = ["wedding","corporate_lunch","college_canteen","birthday_party",
-                      "festival_event","hospital_canteen","school_canteen","dhaba_daily"]
+        etype_list = EVENT_TYPES
         fmap = {
             "headcount":         req.headcount/3000,
             "num_dishes":        req.num_dishes/10,
@@ -248,8 +249,15 @@ if HAS_FASTAPI:
         version="3.0",
         docs_url="/docs",
     )
-    app.add_middleware(CORSMiddleware, allow_origins=["*"],
-                       allow_methods=["*"], allow_headers=["*"])
+    import os
+    allowed_origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "*").split(",") if o.strip()]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     # ── Endpoints ────────────────────────────────────────────────
 

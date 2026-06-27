@@ -440,19 +440,19 @@ for i in range(N):
     wastage_kg = round(actual_consumption * wastage_rate * exp_wastage_adj
                        * np.random.uniform(0.8, 1.2), 3)
 
-    # Stockout: derived from ordering behaviour
-    tier = min(3, int(exp > 2) + int(exp > 5) + int(exp > 10))
-    lo   = [0.70, 0.82, 0.90, 0.95][tier]
-    hi   = [0.90, 0.96, 1.00, 1.05][tier]
-    acc  = np.random.uniform(lo, hi)
-    cyl_ordered = max(1, int(cylinders_needed * acc))
-    shock = (wed_flag == 1 and np.random.random() < 0.08)
-    surge = (hc > 500 and exp <= 3 and np.random.random() < 0.15)
-    ran_out = int((cyl_ordered < cylinders_needed) or shock or surge)
-
     order_lead = int(np.random.uniform(
         *[(1, 4), (2, 6), (4, 10), (5, 12)][min(3, exp // 5)]
     ))
+
+    # Stockout: derived from ordering behaviour with realistic ~27% rate
+    tier = min(3, int(exp > 2) + int(exp > 5) + int(exp > 10))
+    lo, hi = [(0.88, 1.00), (0.92, 1.05), (0.96, 1.08), (0.98, 1.10)][tier]
+    cyl_ordered = max(1, int(cylinders_needed * np.random.uniform(lo, hi)))
+    # Supply shock: wedding season + last-minute order
+    shock = (wed_flag == 1 and order_lead <= 1 and np.random.random() < 0.12)
+    # Surge: very large event + novice caterer
+    surge = (hc > 1000 and exp <= 2 and np.random.random() < 0.10)
+    ran_out = int((cyl_ordered < cylinders_needed) or shock or surge)
 
     # LPG price from real government data
     price_row = lpg_monthly[
@@ -714,7 +714,7 @@ print(f"  Normalised columns:        {df_enc.shape[1]}")
 print(f"  All values in [0,1]:       YES")
 print(f"  Null values:               0")
 print(f"\n  Real data contributions:")
-print(f"    LPG prices:    6 govt data points → {len(lpg_monthly)} monthly values (interpolated)")
+print(f"    LPG prices:    6 govt data points -> {len(lpg_monthly)} monthly values (interpolated)")
 print(f"    Wastage rates: derived from {len(wastage_raw)} real event records")
 print(f"    Gas intensity: derived from {len(recipes)} real recipes")
 print(f"\n  Saved:")

@@ -60,29 +60,6 @@ meta = json.load(open("data/final/feature_metadata.json"))
 TMIN = meta["scaler_params"]["target_min"]
 TMAX = meta["scaler_params"]["target_max"]
 
-# ── Derive correct stockout labels ────────────────────────────────
-# Uses raw data (real-unit values) to set realistic ordering accuracy.
-# This overwrites whatever is in the normalised file to ensure
-# the training always uses the correct ~27% stockout rate.
-np.random.seed(42)
-def derive_stockout(row):
-    exp   = row["experience_yrs"]
-    cyl   = row["cylinders_needed"]
-    lead  = row["order_lead_days"]
-    season= row["wedding_season"]
-    hc    = row["headcount"]
-    # Tight accuracy — most caterers order correctly
-    lo, hi = [(0.88,1.00),(0.92,1.05),(0.96,1.08),(0.98,1.10)][
-        min(3, int(exp>2)+int(exp>5)+int(exp>10))
-    ]
-    ordered = max(1, int(cyl * np.random.uniform(lo, hi)))
-    # Supply shock: wedding season + last-minute
-    shock = (season == 1 and lead <= 1 and np.random.random() < 0.12)
-    # Surge: very large event + novice
-    surge = (hc > 1000 and exp <= 2  and np.random.random() < 0.10)
-    return int((ordered < cyl) or shock or surge)
-
-norm["ran_out_of_gas"] = raw.apply(derive_stockout, axis=1).values
 rate = norm["ran_out_of_gas"].mean() * 100
 print(f"  Stockout rate: {rate:.1f}%  ({norm.ran_out_of_gas.sum()} events)")
 if rate > 40:
@@ -150,7 +127,7 @@ if n_add > 0:
     Xaug   = np.clip(Xtr_s[pos][idx] + np.random.normal(0, 0.015, (n_add, Xtr_s.shape[1])), 0, 1)
     Xtr_sb = np.vstack([Xtr_s, Xaug])
     ys_b   = np.concatenate([ys_tr, np.ones(n_add)])
-    print(f"  Oversampled: +{n_add} → {(ys_b==0).sum():.0f} neg / {(ys_b==1).sum():.0f} pos")
+    print(f"  Oversampled: +{n_add} -> {(ys_b==0).sum():.0f} neg / {(ys_b==1).sum():.0f} pos")
 else:
     Xtr_sb, ys_b = Xtr_s, ys_tr
 
@@ -190,8 +167,8 @@ r2_mc = r2_score(yc_te, mlp_c.predict(Xte))
 r2_gc = r2_score(yc_te, gbm_c.predict(Xte))
 mae_mc = mean_absolute_error(yc_te, mlp_c.predict(Xte)) * cm_rng
 mae_gc = mean_absolute_error(yc_te, gbm_c.predict(Xte)) * cm_rng
-print(f"    MLP  R²={r2_mc:.4f}  MAE={mae_mc:.1f} kg")
-print(f"    GBM  R²={r2_gc:.4f}  MAE={mae_gc:.1f} kg  ← winner")
+print(f"    MLP  R^2={r2_mc:.4f}  MAE={mae_mc:.1f} kg")
+print(f"    GBM  R^2={r2_gc:.4f}  MAE={mae_gc:.1f} kg  <- winner")
 
 joblib.dump(mlp_c, "models_final/mlp_consumption.joblib")
 joblib.dump(gbm_c, "models_final/gbm_consumption.joblib")
@@ -210,8 +187,8 @@ r2_mk = r2_score(yk_te, mlp_k.predict(Xte))
 r2_gk = r2_score(yk_te, gbm_k.predict(Xte))
 mae_mk = mean_absolute_error(yk_te, mlp_k.predict(Xte)) * ck_rng
 mae_gk = mean_absolute_error(yk_te, gbm_k.predict(Xte)) * ck_rng
-print(f"    MLP  R²={r2_mk:.4f}  MAE={mae_mk:.2f} cyl")
-print(f"    GBM  R²={r2_gk:.4f}  MAE={mae_gk:.2f} cyl  ← winner")
+print(f"    MLP  R^2={r2_mk:.4f}  MAE={mae_mk:.2f} cyl")
+print(f"    GBM  R^2={r2_gk:.4f}  MAE={mae_gk:.2f} cyl  <- winner")
 
 joblib.dump(mlp_k, "models_final/mlp_cylinders.joblib")
 joblib.dump(gbm_k, "models_final/gbm_cylinders.joblib")
@@ -349,12 +326,12 @@ plt.close()
 print("\n" + "="*60)
 print("TRAINING COMPLETE")
 print("="*60)
-print(f"\n  consumption_kg   GBM  R²={r2_gc:.4f}   MAE={mae_gc:.1f} kg")
-print(f"  cylinders_needed GBM  R²={r2_gk:.4f}   MAE={mae_gk:.2f} cyl")
+print(f"\n  consumption_kg   GBM  R^2={r2_gc:.4f}   MAE={mae_gc:.1f} kg")
+print(f"  cylinders_needed GBM  R^2={r2_gk:.4f}   MAE={mae_gk:.2f} cyl")
 print(f"  ran_out_of_gas   GBM  F1={f1_s:.4f}   AUC={auc_s:.4f}")
 print(f"\n  Stockout top features:")
 for _,row in fi.head(5).iterrows():
-    print(f"    {row.feature:35s} {'█'*max(1,int(row.stockout*300))}")
+    print(f"    {row.feature:35s} {'#'*max(1,int(row.stockout*300))}")
 print(f"\n  All files saved to models_final/")
 print(f"\n{'='*60}")
 print("NEXT STEPS:")

@@ -1,0 +1,74 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Python Cache & Testing Directories
+.pytest_cache/
+.mypy_cache/
+.tox/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+active/
+ENV2/
+
+# Secrets & Configuration Files
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+.env.staging
+secrets.json
+*credentials*
+*.pem
+*.key
+*.cert
+
+# Data, Models, & Local Artifacts (Generated Outputs)
+data/processed/
+data/final/
+models_final/
+plots/
+optimization_result_demo.json
+Catering_Events_Simulation.csv
+Catering_Events_Optimization.csv
+
+# IDE / Editor Settings
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*~
+.project
+.pydevproject
+.settings/
+
+# OS-specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary & Log files
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
