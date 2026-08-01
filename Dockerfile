@@ -1,5 +1,5 @@
 # Use official slim Python runtime
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
@@ -11,11 +11,6 @@ WORKDIR /app
 
 # Create a non-privileged system user and group
 RUN groupadd -r runner && useradd -r -g runner runner
-
-# Install system dependencies (scipy/scikit-learn might need build tools)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
 
 # Install python dependencies
 COPY --chown=runner:runner requirements.txt .
