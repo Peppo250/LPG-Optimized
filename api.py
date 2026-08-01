@@ -26,6 +26,8 @@ warnings.filterwarnings("ignore")
 try:
     from fastapi import FastAPI, HTTPException, Query
     from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.staticfiles import StaticFiles
+    from fastapi.responses import HTMLResponse
     from pydantic import BaseModel, Field
     HAS_FASTAPI = True
 except ImportError:
@@ -263,10 +265,25 @@ if HAS_FASTAPI:
         allow_headers=["*"],
     )
 
+    # Mount static assets
+    if os.path.exists("css"):
+        app.mount("/css", StaticFiles(directory="css"), name="css")
+    if os.path.exists("js"):
+        app.mount("/js", StaticFiles(directory="js"), name="js")
+
     # ── Endpoints ────────────────────────────────────────────────
 
-    @app.get("/")
-    async def health():
+    @app.get("/", response_class=HTMLResponse)
+    async def home():
+        """Serve the interactive dashboard HTML at the root URL."""
+        if os.path.exists("dashboard.html"):
+            with open("dashboard.html", "r", encoding="utf-8") as f:
+                return f.read()
+        return "<h1>LPG Catering Intelligence API is running</h1>"
+
+    @app.get("/healthz")
+    async def healthz():
+        """Dedicated health check endpoint for Render monitoring."""
         return {
             "status":    "running",
             "version":   "3.0",

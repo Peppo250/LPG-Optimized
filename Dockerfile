@@ -22,6 +22,9 @@ COPY --chown=runner:runner . .
 # Switch to the non-root user
 USER runner
 
+# Run the data pipeline and train the models to generate model binaries
+RUN python data_pipeline.py && python train_final.py
+
 # Expose API port
 EXPOSE 8000
 

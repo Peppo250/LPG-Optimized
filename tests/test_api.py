@@ -7,11 +7,16 @@ class TestAPI(unittest.TestCase):
         self.client = TestClient(app)
 
     def test_health_check(self):
-        response = self.client.get("/")
+        response = self.client.get("/healthz")
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data["status"], "running")
         self.assertIn("version", data)
+
+    def test_home_page(self):
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("LPG Catering", response.text)
 
     def test_metrics_endpoint(self):
         response = self.client.get("/api/metrics")
