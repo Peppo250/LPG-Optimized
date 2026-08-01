@@ -22,7 +22,7 @@ async function api(path, opts = {}) {
 
 async function checkAPI() {
   try {
-    await api('/');
+    await api('/healthz');
     document.getElementById('apibadge').className = 'badge badge-green';
     document.getElementById('apibadge').textContent = '\u25CF Live';
     document.getElementById('sstatus').textContent = '\u25CF API connected';
