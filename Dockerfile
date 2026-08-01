@@ -9,17 +9,23 @@ ENV PYTHONUNBUFFERED=1 \
 # Set working directory
 WORKDIR /app
 
+# Create a non-privileged system user and group
+RUN groupadd -r runner && useradd -r -g runner runner
+
 # Install system dependencies (scipy/scikit-learn might need build tools)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Install python dependencies
-COPY requirements.txt .
+COPY --chown=runner:runner requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project files
-COPY . .
+COPY --chown=runner:runner . .
+
+# Switch to the non-root user
+USER runner
 
 # Expose API port
 EXPOSE 8000

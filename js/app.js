@@ -1,4 +1,8 @@
-const API = 'http://localhost:8000';
+const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === ''
+  ? 'http://localhost:8000'
+  : (window.location.origin.includes('github.io') || window.location.origin.includes('vercel.app') || window.location.protocol === 'file:'
+     ? 'https://lpg-optimized.onrender.com' // Replace with your actual Render app URL (e.g. lpg-catering-intelligence.onrender.com)
+     : window.location.origin);
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const COLORS = ['#f78166', '#58a6ff', '#3fb950', '#d29922', '#8b949e', '#39d353', '#f85149', '#7f77dd'];

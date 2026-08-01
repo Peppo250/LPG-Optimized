@@ -251,10 +251,14 @@ if HAS_FASTAPI:
     )
     import os
     allowed_origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "*").split(",") if o.strip()]
+    allow_credentials = True
+    if "*" in allowed_origins:
+        allow_credentials = False
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,
-        allow_credentials=True,
+        allow_credentials=allow_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
     )

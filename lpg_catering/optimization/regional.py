@@ -74,7 +74,7 @@ class RegionalOptimizer:
                 new_date = orig - timedelta(days=shift_days)
 
                 # Only shift if still before latest safe date
-                if new_date >= latest:
+                if new_date <= latest:
                     new_date_str = new_date.strftime("%Y-%m-%d")
                     # Update demand
                     if spike_date in demand_counts:
