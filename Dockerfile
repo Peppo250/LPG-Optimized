@@ -9,8 +9,8 @@ ENV PYTHONUNBUFFERED=1 \
 # Set working directory
 WORKDIR /app
 
-# Create a non-privileged system user and group
-RUN groupadd -r runner && useradd -r -g runner runner
+# Create a non-privileged system user and group, and fix working directory ownership
+RUN groupadd -r runner && useradd -r -g runner runner && chown -R runner:runner /app
 
 # Install python dependencies
 COPY --chown=runner:runner requirements.txt .
